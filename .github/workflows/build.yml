@@ -1,0 +1,60 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-latest
+          - arch: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          architecture: ${{ matrix.arch }}
+
+      - name: Install PyInstaller
+        run: python -m pip install -U pyinstaller
+
+      - name: Smoke test (loads all Win32 signatures)
+        run: python -c "import game_wrapper, platform; print('ok', platform.machine())"
+
+      - name: Build
+        run: pyinstaller --noconfirm --onedir --windowed --name GameWrapper game_wrapper.py
+
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path dist\GameWrapper -DestinationPath GameWrapper-${{ matrix.arch }}.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GameWrapper-${{ matrix.arch }}
+          path: GameWrapper-${{ matrix.arch }}.zip
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: GameWrapper-*.zip
+          generate_release_notes: true
