@@ -57,7 +57,7 @@ Check `<name>.log` next to the exe.
 
 ## Building yourself
 
-Builds run on GitHub Actions (`.github/workflows/build.yml`). Push a `v*` tag to publish a release.
+Builds run on GitHub Actions (`.github/workflows/build.yml`). Every push to `main` publishes a new release (`v1.0.<run number>`) with both zips.
 
 Locally, PyInstaller isn't a cross-compiler, so build x64 with x64 Python and ARM64 with ARM64 Python (3.10+):
 
